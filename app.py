@@ -1,5 +1,5 @@
 from flask import Flask, render_template, url_for, request, session, redirect
-from cfApi import userInfo
+from cfApi import userInfo, getTitle, getColor, searchFunc
 from random import randint
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
@@ -26,8 +26,20 @@ class Algo(db.Model):
 	other = db.Column(db.String, nullable=False)
 	description = db.Column(db.Text, nullable=False)
 	urls = db.Column(db.Text, nullable=False)
-	paste = db.Column(db.String)
+	paste = db.Column(db.String, unique=True, nullable=False)
 	user = db.Column(db.String, nullable=False)
+
+
+def updateDB():
+	A = Algo()
+	A.name = session['algo']['name']
+	A.other = session['algo']['other']
+	A.description = session['algo']['description']
+	A.urls = session['algo']['urls']
+	A.paste = session['algo']['paste']
+	A.user = session['algo']['user']
+	db.session.add(A)
+	db.session.commit()
 
 
 @app.route('/')
@@ -64,6 +76,8 @@ def adding():
 		session['algo']['user'] = user['handle']
 		if (all([session['algo'].get(i) for i in interfaces])):
 			# здесь я типо базу данных обновляю
+			updateDB()
+			session.pop('algo')
 			return redirect('/algo')
 	return render_template('adding.html', **kwargs, **session)
 
@@ -75,7 +89,9 @@ def algo():
 	kwargs['content_title'] = 'Algo'
 	if request.method == 'POST' and session.get('auth'):
 		return redirect('/algo/adding')
-	return render_template('algo.html', **kwargs, **session)
+	data = reversed(Algo.query.all())
+	data = filter(lambda x: searchFunc(x, request.args.get('search', '')), data)
+	return render_template('algo.html', **kwargs, **session, data=data)
 
 
 @app.route('/login/', methods=['post', 'get'])
@@ -89,6 +105,7 @@ def login():
 		if handle:
 			session['handle'] = handle
 			session['user'] = userInfo(handle)
+			session['color'] = getColor(session['user'])
 			session['email'] = session['user'].get('email') if session['user'] else None
 			session['secret'] = str(randint(1000, 9999))
 			session['auth'] = False
@@ -111,6 +128,16 @@ def logout():
 	# session.pop('secret') if session.get('secret') else None
 	# session.pop('auth') if session.get('auth') else None
 	return render_template('logout.html', **kwargs, **session)
+
+
+@app.route('/reading/<id>/')
+def reading(id):
+	kwargs = dict()
+	ans = Algo.query.filter(Algo.id == int(id))[0]
+	kwargs['title'] = ans.name
+	kwargs['content_title'] = ans.name
+	kwargs['getTitle'] = getTitle
+	return render_template('reading.html', **kwargs, **session, note=ans)
 
 
 if __name__ == '__main__':

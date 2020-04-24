@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="row">
+	<div class="card">
+		<h5 class="card-header">
+			{{ note.other }}
+			<a href="https://codeforces.com/profile/{{ note.user }}" class="badge badge-dark">{{ note.user }}</a>
+		</h5>
+		<div class="card-body">
+			<h5 class="card-title">Описание</h5>
+			<p class="card-text">
+				{% for line in note.description.strip().split('\n') %}
+					{{ line.strip() }}<br>
+				{% endfor %}
+			</p>
+			<h5 class="card-title">Ссылки</h5>
+			{% for link in note.urls.split('\n') %}
+				<a href="{{ link }}" class="btn btn-secondary">{{ getTitle(link.strip()) }}</a><p></p>
+			{% endfor %}
+			<a href="{{ note.paste.strip() }}" class="btn btn-warning">Реализация</a><p></p>
+		</div>
+	</div>
+</div>
+
+{% endblock %}
