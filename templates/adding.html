@@ -2,12 +2,6 @@
 
 {% block content %}
 
-{% if not auth %}
-<div class="row">
-	<div class="alert alert-danger" role="alert" style="width: 400px">Уважаемый аноним, залогиньтесь!</div>
-</div>
-{% else %}
-
 <form action="" method="post">
 	<div class="row">
 		<div class="input-group mb-3" style="width: 600px">
@@ -74,5 +68,4 @@
 
 <h2>{{ algo }}</h2>
 
-{% endif %}
 {% endblock %}

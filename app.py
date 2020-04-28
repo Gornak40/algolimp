@@ -42,6 +42,16 @@ def updateDB():
 	db.session.commit()
 
 
+def changeDB(note):
+	db.session.merge(note)
+	db.session.commit()
+
+
+def deleteDB(note):
+	db.session.delete(note)
+	db.session.commit()
+
+
 @app.route('/')
 def index():
 	kwargs = dict()
@@ -55,6 +65,9 @@ def adding():
 	kwargs = dict()
 	kwargs['title'] = 'Adding'
 	kwargs['content_title'] = 'Adding'
+	if not session.get('user'):
+		session['message'] = 'Уважаемый аноним, залогиньтесь!'
+		return redirect('/message')
 	if request.method == 'POST':
 		session['algo'] = session.get('algo', dict())
 		name = request.form.get('name')
@@ -87,6 +100,7 @@ def algo():
 	kwargs = dict()
 	kwargs['title'] = 'Algo'
 	kwargs['content_title'] = 'Algo'
+	session.pop('algo') if session.get('algo') else None
 	if request.method == 'POST' and session.get('auth'):
 		return redirect('/algo/adding')
 	data = reversed(Algo.query.all())
@@ -138,6 +152,78 @@ def reading(id):
 	kwargs['content_title'] = ans.name
 	kwargs['getTitle'] = getTitle
 	return render_template('reading.html', **kwargs, **session, note=ans)
+
+
+@app.route('/edit/<id>/', methods=['post', 'get'])
+def edit(id):
+	kwargs = dict()
+	kwargs['title'] = 'Edit'
+	kwargs['content_title'] = 'Edit'
+	note = Algo.query.filter(Algo.id == int(id))[0]
+	kwargs['algo'] = dict()
+	kwargs['algo']['name'] = note.name
+	kwargs['algo']['other'] = note.other
+	kwargs['algo']['description'] = note.description
+	kwargs['algo']['urls'] = note.urls
+	kwargs['algo']['paste'] = note.paste
+	if not session.get('auth'):
+		session['message'] = 'Уважаемый аноним, залогиньтесь!'
+		return redirect('/message')
+	if not session.get('user') or session['user']['handle'] != note.user:
+		session['message'] = 'Вы не являетесь автором этой записи!'
+		return redirect('/message')
+	if request.method == 'POST':
+		session['algo'] = session.get('algo', dict())
+		name = request.form.get('name')
+		other = request.form.get('other')
+		description = request.form.get('description')
+		urls = request.form.get('urls')
+		paste = request.form.get('paste')
+		user = session.get('user')
+		if name:
+			session['algo']['name'] = name
+		if other:
+			session['algo']['other'] = other
+		if description:
+			session['algo']['description'] = description
+		if urls:
+			session['algo']['urls'] = urls
+		if paste:
+			session['algo']['paste'] = paste
+		session['algo']['user'] = user['handle']
+		if (all([session['algo'].get(i) for i in interfaces])):
+			# здесь я типо базу данных обновляю
+			session['algo']['name'] = note.name = name
+			session['algo']['other'] = note.other = other
+			session['algo']['description'] = note.description = description
+			session['algo']['urls'] = note.urls = urls
+			session['algo']['paste'] = note.paste = paste
+			changeDB(note)
+			session.pop('algo')
+			return redirect('/algo')
+	kwargs.pop('algo') if session.get('algo') else None
+	return render_template('adding.html', **kwargs, **session, note=note)
+
+
+@app.route('/delete/<id>/')
+def delete(id):
+	note = Algo.query.filter(Algo.id == int(id))[0]
+	if not session.get('auth'):
+		session['message'] = 'Уважаемый аноним, залогиньтесь!'
+		return redirect('/message')
+	if session.get('user')['handle'] == note.user:
+		deleteDB(note)
+		return redirect('/algo')
+	session['message'] = 'Вы не являетесь автором этой записи!'
+	return redirect('/message')
+
+
+@app.route('/message/')
+def message():
+	kwargs = dict()
+	kwargs['title'] = 'Message'
+	kwargs['content_title'] = 'Message'
+	return render_template('message.html', **kwargs, **session)
 
 
 if __name__ == '__main__':

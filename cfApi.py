@@ -10,10 +10,11 @@ def userInfo(handle):
 
 
 def getTitle(link):
-	req = get(link, headers={'user-agent': UserAgent().random})
-	bs = BeautifulSoup(req.content)
-	if not bs.title:
-		return 'Статья'
+	try:
+		req = get(link, headers={'user-agent': UserAgent().random})
+		bs = BeautifulSoup(req.content)
+	except:
+		return
 	return bs.title.string
 
 
