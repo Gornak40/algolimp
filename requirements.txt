@@ -3,3 +3,4 @@ flask-sqlalchemy
 fake-useragent
 bs4
 requests
+werkzeug
