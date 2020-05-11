@@ -17,8 +17,11 @@
 			</p>
 			<h5 class="card-title">Ссылки</h5>
 			{% for link in note.urls.split('\n') %}
-				{% if getTitle(link.strip()) %}
-				<a href="{{ link }}" class="btn btn-secondary">{{ getTitle(link.strip()) }}</a><p></p>
+				{% set ttl = getTitle(link.strip()) %}
+				{% if ttl and ttl != 'Файл' %}
+				<a href="{{ link }}" class="btn btn-secondary">{{ ttl }}</a><p></p>
+				{% elif ttl == 'Файл' %}
+				<a href="{{ link }}" class="btn btn-primary">{{ ttl }}</a><p></p>
 				{% else %}
 				<a href="#" class="btn btn-danger">Сслыка не открылась</a><p></p>
 				{% endif %}

@@ -1,6 +1,9 @@
 from requests import get
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
+from smtplib import SMTP
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 
 def userInfo(handle):
@@ -15,6 +18,8 @@ def getTitle(link):
 		bs = BeautifulSoup(req.content)
 	except:
 		return
+	if not bs.title:
+		return 'Файл'
 	return bs.title.string
 
 
@@ -43,3 +48,23 @@ def searchFunc(algo, flt):
 		return True
 	text = (algo.name + ' ' + algo.other).lower()
 	return any([x in text for x in flt])
+
+
+def authorFunc(algo, flt):
+	flt = flt.strip()
+	return algo.user == flt
+
+
+def sendMail(addr, code):
+	smtp = SMTP('smtp.gmail.com', 587)
+	smtp.starttls()
+	login, pwd = 'algolimp.service@gmail.com', 'Alfred4004'
+	smtp.login(login, pwd)
+	msg = MIMEMultipart()
+	message = 'Your code for authorization: #{}'.format(code)
+	msg['From'] = login
+	msg['To'] = addr
+	msg['Subject'] = 'Algolimp login'
+	msg.attach(MIMEText(message, 'plain'))
+	smtp.sendmail(msg['From'], msg['To'], msg.as_string())
+	smtp.quit()

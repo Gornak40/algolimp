@@ -1,8 +1,9 @@
-from flask import Flask, render_template, url_for, request, session, redirect
-from cfApi import userInfo, getTitle, getColor, searchFunc
+from flask import Flask, render_template, url_for, request, session, redirect, send_from_directory, send_file
+from cfApi import *
 from random import randint
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
+# from flask_ngrok import run_with_ngrok
 
 
 interfaces = [
@@ -14,6 +15,7 @@ interfaces = [
 	'user'
 ]
 app = Flask(__name__)
+# run_with_ngrok(app)
 app.config['SECRET_KEY'] = generate_password_hash('Alfred Hitchcock')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////home/gornak40/code/yandex/algolimp/data/algo.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -104,7 +106,11 @@ def algo():
 	if request.method == 'POST' and session.get('auth'):
 		return redirect('/algo/adding')
 	data = reversed(Algo.query.all())
-	data = filter(lambda x: searchFunc(x, request.args.get('search', '')), data)
+	flt = request.args.get('search', '')
+	if not flt or flt[0] != '@':
+		data = filter(lambda x: searchFunc(x, flt), data)
+	else:
+		data = filter(lambda x: authorFunc(x, flt[1:]), data)
 	return render_template('algo.html', **kwargs, **session, data=data)
 
 
@@ -113,6 +119,7 @@ def login():
 	kwargs = dict()
 	kwargs['title'] = 'Login'
 	kwargs['content_title'] = 'Login'
+	kwargs['sendMail'] = sendMail
 	if request.method == 'POST':
 		handle = request.form.get('handle')
 		code = request.form.get('code')
@@ -126,7 +133,6 @@ def login():
 		session['code'] = code if code else str()
 		if session['code'] and session['secret'] and session['code'] == session['secret']:
 			session['auth'] = True
-
 	return render_template('login.html', **kwargs, **session)
 
 
@@ -226,5 +232,27 @@ def message():
 	return render_template('message.html', **kwargs, **session)
 
 
+@app.route('/sponsors/')
+def sponsors():
+	kwargs = dict()
+	kwargs['title'] = 'Sponsors'
+	kwargs['content_title'] = 'Sponsors'
+	return render_template('sponsors.html', **kwargs, **session)
+
+
+@app.route('/downloads/')
+def downloads():
+	kwargs = dict()
+	kwargs['title'] = 'Downloads'
+	kwargs['content_title'] = 'Downloads'
+	return render_template('downloads.html', **kwargs, **session)
+
+
+@app.route('/downloads/<name>/')
+def download(name):
+	#return name
+	return send_file('static/code/make.py', as_attachment=True)
+
+
 if __name__ == '__main__':
-	app.run()
+	app.run(debug=True)
